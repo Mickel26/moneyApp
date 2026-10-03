@@ -32,7 +32,7 @@ const STEPS: { title: string; body: string }[] = [
   {
     title: 'Akcja „Tekst”',
     body:
-      `Dodaj akcję „Tekst” [Text] i wpisz dokładnie: ${PAYMENT_PREFIX}| potem zmienna Kwota | zmienna ` +
+      `Dodaj akcję „Tekst” [Text] i wpisz dokładnie: ${PAYMENT_PREFIX}| (albo Budget|) potem zmienna Kwota | zmienna ` +
       'Sprzedawca | zmienna Sformatowana data. Zmienne wstawiasz, stukając „Wejście skrótu” [Shortcut Input] ' +
       'i wybierając pole „Kwota” [Amount] albo „Sprzedawca” [Merchant]. Oddzielaj je znakiem |.',
   },

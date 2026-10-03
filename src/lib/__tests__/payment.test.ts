@@ -33,6 +33,15 @@ describe('parsePaymentText', () => {
     });
   });
 
+  it('accepts the prefix typed without Polish letters', () => {
+    expect(parsePaymentText('Budget|PLN 23.99|Zabka|2026-10-03T20:15:31+02:00')).toMatchObject({
+      amount: 23_99,
+      merchant: 'Zabka',
+      day: '2026-10-03',
+    });
+    expect(parsePaymentText('BUDZET|23,99 zł|Lidl')).toMatchObject({ amount: 23_99, merchant: 'Lidl' });
+  });
+
   it('accepts missing fields from the shortcut', () => {
     expect(parsePaymentText('Budżet||Starbucks Warszawa|')).toEqual({
       amount: null,

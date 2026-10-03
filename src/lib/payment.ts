@@ -12,6 +12,8 @@
 import { DayKey, parseAmount } from '@/lib/budget';
 
 export const PAYMENT_PREFIX = 'Budżet';
+/** Also accepted, since "ż" is awkward to type on a non-Polish keyboard. */
+const PREFIXES = ['budżet', 'budzet', 'budget'];
 
 export type ParsedPayment = {
   /** Grosze, or null when the shortcut didn't get an amount. */
@@ -59,7 +61,7 @@ export function parsePaymentText(text: string): ParsedPayment | null {
   let day: DayKey | null = null;
 
   const parts = trimmed.split('|');
-  if (parts[0].trim().toLowerCase() === PAYMENT_PREFIX.toLowerCase()) {
+  if (PREFIXES.includes(parts[0].trim().toLowerCase())) {
     amount = parts[1] ? parseLooseAmount(parts[1]) : null;
     merchant = parts[2] ? cleanMerchant(parts[2]) : null;
     day = parts[3] ? parseDay(parts[3]) : null;
