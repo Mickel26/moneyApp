@@ -9,11 +9,13 @@ import { Spacing, Theme } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { confirmDeleteExpense } from '@/lib/actions';
 import { addDays, BudgetSummary, formatDay, formatMoney, getPeriod, pluralize, summarize } from '@/lib/budget';
+import { confirmIfDuplicate, openAddWithPayment, readClipboardPayment } from '@/lib/payment-import';
 import { sortExpenses, useStore } from '@/lib/store';
 
 export default function TodayScreen() {
   const theme = useTheme();
-  const { loaded, settings, expenses, fixedCosts, today, saveSettings, addExpense, deleteExpense } = useStore();
+  const { loaded, settings, expenses, fixedCosts, importedPayments, today, saveSettings, addExpense, deleteExpense } =
+    useStore();
 
   if (!loaded) return <View style={{ flex: 1, backgroundColor: theme.background }} />;
 
@@ -62,6 +64,14 @@ export default function TodayScreen() {
         </View>
         <View style={styles.heroButton}>
           <Button title="＋  Dodaj wydatek" onPress={() => router.push('/add')} />
+          <Button
+            title="📋  Z płatności Apple Pay"
+            variant="secondary"
+            onPress={async () => {
+              const payment = await readClipboardPayment();
+              if (payment) confirmIfDuplicate(payment, importedPayments, () => openAddWithPayment(payment));
+            }}
+          />
         </View>
       </Card>
 
@@ -196,6 +206,7 @@ const styles = StyleSheet.create({
   },
   heroButton: {
     marginTop: Spacing.sm,
+    gap: Spacing.sm,
   },
   rowBetween: {
     flexDirection: 'row',

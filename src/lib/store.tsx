@@ -10,6 +10,8 @@ type PersistedState = {
   settings: Settings | null;
   expenses: Expense[];
   fixedCosts: FixedCost[];
+  /** Raw clipboard texts of Apple Pay payments already added, to warn about duplicates. */
+  importedPayments: string[];
 };
 
 type Store = PersistedState & {
@@ -21,10 +23,18 @@ type Store = PersistedState & {
   saveSettings: (settings: Settings) => void;
   saveFixedCost: (fixedCost: Omit<FixedCost, 'id'> & { id?: string }) => void;
   deleteFixedCost: (id: string) => void;
+  markPaymentImported: (raw: string) => void;
   resetAll: () => void;
 };
 
-const EMPTY_STATE: PersistedState = { settings: null, expenses: [], fixedCosts: [] };
+const EMPTY_STATE: PersistedState = {
+  settings: null,
+  expenses: [],
+  fixedCosts: [],
+  importedPayments: [],
+};
+
+const MAX_IMPORTED_PAYMENTS = 100;
 
 const StoreContext = createContext<Store | null>(null);
 
@@ -62,6 +72,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           settings: parsed.settings ?? null,
           expenses: parsed.expenses ?? [],
           fixedCosts: parsed.fixedCosts ?? [],
+          importedPayments: parsed.importedPayments ?? [],
         });
       })
       .catch((error) => console.warn('Nie udało się wczytać danych', error))
@@ -116,6 +127,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setState((s) => ({ ...s, fixedCosts: s.fixedCosts.filter((f) => f.id !== id) }));
   }, []);
 
+  const markPaymentImported = useCallback((raw: string) => {
+    setState((s) => ({
+      ...s,
+      importedPayments: [raw, ...s.importedPayments.filter((p) => p !== raw)].slice(0, MAX_IMPORTED_PAYMENTS),
+    }));
+  }, []);
+
   const resetAll = useCallback(() => {
     setState(EMPTY_STATE);
   }, []);
@@ -131,9 +149,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       saveSettings,
       saveFixedCost,
       deleteFixedCost,
+      markPaymentImported,
       resetAll,
     }),
-    [state, loaded, today, addExpense, updateExpense, deleteExpense, saveSettings, saveFixedCost, deleteFixedCost, resetAll],
+    [
+      state,
+      loaded,
+      today,
+      addExpense,
+      updateExpense,
+      deleteExpense,
+      saveSettings,
+      saveFixedCost,
+      deleteFixedCost,
+      markPaymentImported,
+      resetAll,
+    ],
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

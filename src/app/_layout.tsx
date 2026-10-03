@@ -12,6 +12,7 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="add" options={{ presentation: 'modal' }} />
           <Stack.Screen name="fixed" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="apple-pay" options={{ presentation: 'modal', title: 'Płatności Apple Pay' }} />
         </Stack>
       </StoreProvider>
     </ThemeProvider>

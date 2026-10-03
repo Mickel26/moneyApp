@@ -9,18 +9,54 @@ import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { confirmDeleteExpense } from '@/lib/actions';
 import { addDays, amountToInput, formatMoney, parseAmount, relativeDayLabel, summarize } from '@/lib/budget';
+import { confirmIfDuplicate, readClipboardPayment } from '@/lib/payment-import';
 import { useStore } from '@/lib/store';
 
 export default function AddExpenseScreen() {
   const theme = useTheme();
-  const { id } = useLocalSearchParams<{ id?: string }>();
-  const { expenses, settings, fixedCosts, today, addExpense, updateExpense, deleteExpense } = useStore();
-  const editing = id ? expenses.find((e) => e.id === id) : undefined;
+  // Besides `id` (edit), the form can be prefilled from an Apple Pay payment (see payment-import.ts).
+  const params = useLocalSearchParams<{
+    id?: string;
+    amount?: string;
+    note?: string;
+    category?: string;
+    day?: string;
+    raw?: string;
+  }>();
+  const {
+    expenses,
+    settings,
+    fixedCosts,
+    importedPayments,
+    today,
+    addExpense,
+    updateExpense,
+    deleteExpense,
+    markPaymentImported,
+  } = useStore();
+  const editing = params.id ? expenses.find((e) => e.id === params.id) : undefined;
+  const prefilledAmount = params.amount ? Number(params.amount) : null;
 
-  const [amountText, setAmountText] = useState(editing ? amountToInput(editing.amount) : '');
-  const [category, setCategory] = useState(editing?.category ?? 'food');
-  const [note, setNote] = useState(editing?.note ?? '');
-  const [day, setDay] = useState(editing?.day ?? today);
+  const [amountText, setAmountText] = useState(
+    editing ? amountToInput(editing.amount) : prefilledAmount ? amountToInput(prefilledAmount) : '',
+  );
+  const [category, setCategory] = useState(editing?.category ?? (params.category || 'food'));
+  const [note, setNote] = useState(editing?.note ?? params.note ?? '');
+  const [day, setDay] = useState(editing?.day ?? (params.day || today));
+  const [importedRaw, setImportedRaw] = useState<string | null>(params.raw || null);
+
+  const pasteFromPayment = async () => {
+    const payment = await readClipboardPayment();
+    if (!payment) return;
+    confirmIfDuplicate(payment, importedPayments, () => {
+      if (payment.amount !== null) setAmountText(amountToInput(payment.amount));
+      if (payment.merchant) setNote(payment.merchant);
+      if (payment.category) setCategory(payment.category);
+      if (payment.day) setDay(payment.day);
+      setImportedRaw(payment.raw);
+      Haptics.selectionAsync();
+    });
+  };
 
   const amount = parseAmount(amountText);
   const dayOptions = [today, addDays(today, -1), addDays(today, -2)];
@@ -42,6 +78,7 @@ export default function AddExpenseScreen() {
     const data = { amount, category, note: note.trim() || undefined, day };
     if (editing) updateExpense(editing.id, data);
     else addExpense(data);
+    if (importedRaw) markPaymentImported(importedRaw);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     router.back();
   };
@@ -70,12 +107,21 @@ export default function AddExpenseScreen() {
             placeholder="0"
             placeholderTextColor={theme.textSecondary}
             keyboardType="decimal-pad"
-            autoFocus={!editing}
+            autoFocus={!editing && !prefilledAmount}
             style={[styles.amountInput, { color: theme.text }]}
             accessibilityLabel="Kwota"
           />
           <Text style={[styles.currency, { color: theme.textSecondary }]}>zł</Text>
         </View>
+        {!editing && (
+          <View style={styles.pasteRow}>
+            {importedRaw ? (
+              <Muted>📋 Uzupełnione z płatności Apple Pay</Muted>
+            ) : (
+              <Chip label="📋 Wklej z płatności Apple Pay" selected={false} onPress={pasteFromPayment} />
+            )}
+          </View>
+        )}
         {preview && (
           <Muted style={[styles.preview, preview.startsWith('To przekroczy') && { color: theme.over }]}>
             {preview}
@@ -170,6 +216,10 @@ const styles = StyleSheet.create({
   currency: {
     fontSize: 32,
     fontWeight: '700',
+  },
+  pasteRow: {
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
   },
   preview: {
     textAlign: 'center',

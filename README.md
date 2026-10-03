@@ -14,6 +14,9 @@ a aplikacja co dzień pokazuje, **ile możesz dziś wydać**, żeby starczyło d
   największy wydatek.
 - **Stałe opłaty** – Spotify, telefon, akademik… Są odejmowane od budżetu z góry, więc dzień płatności
   nie zjada dziennego limitu. Na ekranie „Dziś” widać, co już zapłacone, a co dopiero zejdzie.
+- **Płatności Apple Pay** – automatyzacja w aplikacji Skróty kopiuje kwotę i sklep po każdej płatności
+  telefonem; w aplikacji stukasz „📋 Z płatności Apple Pay” i formularz wypełnia się sam (z kategorią
+  zgadniętą po nazwie sklepu). Instrukcja konfiguracji: Ustawienia → Płatności Apple Pay.
 - **Ustawienia** – kwota budżetu i dzień, w którym dostajesz pieniądze (np. 10. – stypendium).
 - Działa offline, dane są zapisywane tylko na telefonie. Obsługuje tryb ciemny.
 
@@ -44,6 +47,18 @@ Po każdym pushu na `main` (lub gałąź roboczą) GitHub Actions buduje wersję
 `gh-pages` (`.github/workflows/deploy-web.yml`). Trzeba tylko raz włączyć GitHub Pages:
 **Settings → Pages → Build and deployment → Source: Deploy from a branch → `gh-pages` / `(root)` → Save**.
 
+### Automatyczne dodawanie płatności Apple Pay
+
+iOS nie pozwala aplikacjom czytać powiadomień, ale automatyzacja **Skróty → Transakcja** uruchamia się
+po każdej płatności Apple Pay. Skrót kopiuje do schowka tekst:
+
+```
+Budżet|<Kwota>|<Sprzedawca>|<Bieżąca data w ISO 8601>
+```
+
+a aplikacja odczytuje go przyciskiem „📋 Z płatności Apple Pay” (parser: `src/lib/payment.ts`).
+Pełna instrukcja krok po kroku jest w aplikacji: Ustawienia → Płatności Apple Pay → „Jak to ustawić?”.
+
 ### Inne sposoby
 
 - **Expo Go** (do testów): zainstaluj Expo Go z App Store, na komputerze `npm install && npm start`
@@ -70,9 +85,11 @@ src/
     (tabs)/         Dziś, Historia, Statystyki, Ustawienia
     add.tsx         dodawanie / edycja wydatku (modal)
     fixed.tsx       dodawanie / edycja stałej opłaty (modal)
+    apple-pay.tsx   instrukcja skrótu Apple Pay + test schowka
   components/       wspólne komponenty UI
   constants/        kolory i kategorie
   lib/budget.ts     cała matematyka budżetu (czyste funkcje + testy)
   lib/store.tsx     stan aplikacji i zapis w AsyncStorage
+  lib/payment.ts    parser płatności ze schowka + zgadywanie kategorii
 public/             pliki PWA: manifest, ikony, service worker (offline), szablon HTML
 ```

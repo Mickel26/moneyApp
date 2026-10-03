@@ -1,4 +1,5 @@
 import * as Haptics from 'expo-haptics';
+import { router } from 'expo-router';
 import { StyleSheet } from 'react-native';
 
 import { BudgetForm } from '@/components/budget-form';
@@ -41,6 +42,15 @@ export default function SettingsScreen() {
           <FixedCostsCard mode="manage" />
         </>
       )}
+
+      <SectionLabel>Płatności Apple Pay</SectionLabel>
+      <Card>
+        <Muted>
+          Po każdej płatności telefonem skrót iOS skopiuje kwotę i sklep. Potem w aplikacji wystarczy stuknąć
+          „📋 Z płatności Apple Pay”.
+        </Muted>
+        <Button title="Jak to ustawić?" variant="secondary" onPress={() => router.push('/apple-pay')} />
+      </Card>
 
       <SectionLabel>Dane</SectionLabel>
       <Card>
