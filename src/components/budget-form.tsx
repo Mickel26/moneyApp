@@ -47,7 +47,10 @@ export function BudgetForm({
     <View style={styles.container}>
       <Card>
         <Text style={[styles.label, { color: theme.text }]}>Ile masz na miesiąc?</Text>
-        <Muted>Kwota na wszystkie wydatki do następnej wypłaty / stypendium / przelewu od rodziców.</Muted>
+        <Muted>
+          Kwota na wszystkie wydatki do następnej wypłaty / stypendium / przelewu od rodziców – razem ze stałymi
+          opłatami (Spotify, telefon, akademik…).
+        </Muted>
         <View style={[styles.amountRow, { backgroundColor: theme.cardMuted }]}>
           <TextInput
             value={budgetText}
@@ -83,7 +86,10 @@ export function BudgetForm({
       {showAlreadySpent && (
         <Card>
           <Text style={[styles.label, { color: theme.text }]}>Ile już wydane w tym okresie?</Text>
-          <Muted>Opcjonalnie – od {formatDay(period.start)} do dziś. Zostanie zapisane jako jeden wydatek.</Muted>
+          <Muted>
+            Opcjonalnie – od {formatDay(period.start)} do dziś. Bez stałych opłat (Spotify, czynsz…), dodasz je
+            osobno w Ustawieniach. Zostanie zapisane jako jeden wydatek, który możesz potem edytować w Historii.
+          </Muted>
           <View style={[styles.amountRow, { backgroundColor: theme.cardMuted }]}>
             <TextInput
               value={spentText}
