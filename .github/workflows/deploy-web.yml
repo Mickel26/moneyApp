@@ -1,0 +1,46 @@
+# Builds the web version (installable PWA) and publishes it to the gh-pages branch,
+# served by GitHub Pages at https://<user>.github.io/<repo>/.
+name: Deploy web app
+
+on:
+  push:
+    branches: [main, claude/practical-turing-bk9cgl]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: deploy-web
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+
+      - name: Export web build
+        run: npx expo export --platform web
+        env:
+          CI: 1
+          WEB_BASE_URL: /${{ github.event.repository.name }}
+
+      # 404.html lets GitHub Pages hand unknown paths (e.g. /history) to the app's router.
+      # .nojekyll stops Pages from hiding the _expo folder.
+      - run: cp dist/index.html dist/404.html && touch dist/.nojekyll
+
+      - uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          publish_branch: gh-pages

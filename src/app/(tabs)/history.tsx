@@ -1,10 +1,11 @@
 import { router } from 'expo-router';
-import { Platform, SectionList, StyleSheet, Text, View } from 'react-native';
+import { SectionList, StyleSheet, Text, View } from 'react-native';
 
 import { ExpenseRow } from '@/components/expense-row';
 import { Muted } from '@/components/ui';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useWebTopInset } from '@/hooks/use-web-top-inset';
 import { confirmDeleteExpense } from '@/lib/actions';
 import { DayKey, Expense, formatMoney, relativeDayLabel } from '@/lib/budget';
 import { sortExpenses, useStore } from '@/lib/store';
@@ -29,12 +30,13 @@ export default function HistoryScreen() {
   const theme = useTheme();
   const { expenses, today, deleteExpense } = useStore();
   const sections = groupByDay(expenses);
+  const webTopInset = useWebTopInset();
 
   return (
     <SectionList
       style={{ flex: 1, backgroundColor: theme.background }}
       contentInsetAdjustmentBehavior="automatic"
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingTop: Spacing.lg + webTopInset }]}
       sections={sections}
       keyExtractor={(e) => e.id}
       stickySectionHeadersEnabled={false}
@@ -77,7 +79,6 @@ export default function HistoryScreen() {
 const styles = StyleSheet.create({
   content: {
     padding: Spacing.lg,
-    paddingTop: Platform.OS === 'web' ? 96 : Spacing.lg,
     paddingBottom: 120,
   },
   header: {

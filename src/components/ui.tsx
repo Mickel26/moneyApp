@@ -1,17 +1,19 @@
 import { ReactNode } from 'react';
-import { Platform, Pressable, ScrollView, StyleProp, StyleSheet, Text, TextStyle, View, ViewStyle } from 'react-native';
+import { Pressable, ScrollView, StyleProp, StyleSheet, Text, TextStyle, View, ViewStyle } from 'react-native';
 
 import { Radius, Spacing } from '@/constants/theme';
+import { useWebTopInset } from '@/hooks/use-web-top-inset';
 import { useTheme } from '@/hooks/use-theme';
 
 export function Screen({ title, children }: { title: string; children: ReactNode }) {
   const theme = useTheme();
+  const webTopInset = useWebTopInset();
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: theme.background }}
       contentInsetAdjustmentBehavior="automatic"
       keyboardShouldPersistTaps="handled"
-      contentContainerStyle={styles.screenContent}>
+      contentContainerStyle={[styles.screenContent, { paddingTop: Spacing.lg + webTopInset }]}>
       <Text style={[styles.screenTitle, { color: theme.text }]}>{title}</Text>
       {children}
     </ScrollView>
@@ -122,8 +124,6 @@ export function Chip({
 const styles = StyleSheet.create({
   screenContent: {
     padding: Spacing.lg,
-    // On web the tab bar floats over the top of the page instead of sitting at the bottom.
-    paddingTop: Platform.OS === 'web' ? 96 : Spacing.lg,
     paddingBottom: 120,
     gap: Spacing.md,
   },

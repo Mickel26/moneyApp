@@ -12,40 +12,45 @@ a aplikacja co dzień pokazuje, **ile możesz dziś wydać**, żeby starczyło d
 - **Historia** – wydatki pogrupowane po dniach. Stuknij, aby edytować, przytrzymaj, aby usunąć.
 - **Statystyki** – średnia dzienna kontra plan, wykres dzień po dniu, podział na kategorie,
   największy wydatek.
+- **Stałe opłaty** – Spotify, telefon, akademik… Są odejmowane od budżetu z góry, więc dzień płatności
+  nie zjada dziennego limitu. Na ekranie „Dziś” widać, co już zapłacone, a co dopiero zejdzie.
 - **Ustawienia** – kwota budżetu i dzień, w którym dostajesz pieniądze (np. 10. – stypendium).
 - Działa offline, dane są zapisywane tylko na telefonie. Obsługuje tryb ciemny.
 
 ### Jak liczony jest dzienny limit
 
 ```
-limit na dziś = (budżet − wydatki z poprzednich dni) ÷ liczba dni do końca okresu (z dzisiejszym)
+limit na dziś = (budżet − stałe opłaty − wydatki z poprzednich dni) ÷ dni do końca okresu (z dzisiejszym)
 ```
 
 Limit jest stały przez cały dzień. Jeśli wydasz mniej, od jutra limit trochę wzrośnie; jeśli więcej –
 spadnie. Kwoty są przechowywane w groszach, więc nie ma błędów zaokrągleń.
 
-## Jak uruchomić na iPhonie (bez Maca)
+## Instalacja na iPhonie (jak zwykła aplikacja) 📲
 
-1. Zainstaluj [Node.js](https://nodejs.org) (wersja 20 lub nowsza) na komputerze.
-2. Zainstaluj na iPhonie aplikację **Expo Go** z App Store.
-3. W folderze projektu:
+Aplikacja działa jako **PWA**: instalujesz ją z Safari, dostaje własną ikonę na ekranie głównym,
+otwiera się na pełnym ekranie i działa offline. Bez Maca, bez App Store, za darmo, nic nie wygasa.
 
-   ```bash
-   npm install
-   npm start
-   ```
+1. Otwórz w **Safari** na iPhonie: **https://mickel26.github.io/moneyApp/**
+2. Stuknij **Udostępnij** (kwadrat ze strzałką) → **Dodaj do ekranu początkowego** → **Dodaj**.
+3. Uruchamiaj aplikację z ikony **Budżet** – nie z Safari.
 
-4. Zeskanuj kod QR z terminala **aparatem iPhone'a** – aplikacja otworzy się w Expo Go.
-   Telefon i komputer muszą być w tej samej sieci Wi-Fi (albo uruchom `npx expo start --tunnel`).
+> Dane są zapisane w aplikacji z ekranu głównego (osobno od Safari). Jeśli usuniesz ikonę,
+> usuniesz też dane.
 
-### Własna aplikacja na ekranie głównym
+### Publikowanie (jednorazowa konfiguracja)
 
-Expo Go wystarczy do codziennego używania, ale jeśli chcesz mieć osobną ikonę „Budżet”:
+Po każdym pushu na `main` (lub gałąź roboczą) GitHub Actions buduje wersję web i wrzuca ją na gałąź
+`gh-pages` (`.github/workflows/deploy-web.yml`). Trzeba tylko raz włączyć GitHub Pages:
+**Settings → Pages → Build and deployment → Source: Deploy from a branch → `gh-pages` / `(root)` → Save**.
 
-- **Z Makiem:** `npx expo run:ios --device` (wymaga Xcode; z darmowym kontem Apple aplikację
-  trzeba ponownie zainstalować co 7 dni).
-- **Bez Maca:** `npx eas-cli build --platform ios` – budowanie w chmurze Expo
-  (instalacja na telefonie wymaga płatnego konta Apple Developer).
+### Inne sposoby
+
+- **Expo Go** (do testów): zainstaluj Expo Go z App Store, na komputerze `npm install && npm start`
+  i zeskanuj kod QR aparatem (telefon i komputer w tej samej sieci Wi-Fi).
+- **Natywna aplikacja:** `npx eas-cli build --platform ios` + TestFlight (wymaga płatnego konta
+  Apple Developer, 99 $/rok) albo `npx expo run:ios --device` z Makiem i Xcode (z darmowym kontem
+  aplikację trzeba instalować ponownie co 7 dni).
 
 ## Dla programistów
 
@@ -56,6 +61,7 @@ npm test           # testy logiki budżetu (jest)
 npm run typecheck  # tsc
 npm run lint       # eslint
 npm run web        # podgląd w przeglądarce
+WEB_BASE_URL=/moneyApp npx expo export --platform web   # build PWA jak na GitHub Pages
 ```
 
 ```
@@ -63,8 +69,10 @@ src/
   app/              ekrany (Expo Router)
     (tabs)/         Dziś, Historia, Statystyki, Ustawienia
     add.tsx         dodawanie / edycja wydatku (modal)
+    fixed.tsx       dodawanie / edycja stałej opłaty (modal)
   components/       wspólne komponenty UI
   constants/        kolory i kategorie
   lib/budget.ts     cała matematyka budżetu (czyste funkcje + testy)
   lib/store.tsx     stan aplikacji i zapis w AsyncStorage
+public/             pliki PWA: manifest, ikony, service worker (offline), szablon HTML
 ```

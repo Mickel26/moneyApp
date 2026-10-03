@@ -23,7 +23,11 @@
     },
     "web": {
       "output": "single",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "name": "Budżet",
+      "shortName": "Budżet",
+      "lang": "pl",
+      "description": "Ile możesz dziś wydać, żeby starczyło do końca miesiąca."
     },
     "plugins": [
       "expo-router",
