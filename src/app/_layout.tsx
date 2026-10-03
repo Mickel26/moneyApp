@@ -11,6 +11,7 @@ export default function RootLayout() {
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="add" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="fixed" options={{ presentation: 'modal' }} />
         </Stack>
       </StoreProvider>
     </ThemeProvider>

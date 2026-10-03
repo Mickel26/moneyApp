@@ -22,6 +22,17 @@ export type Settings = {
   periodStartDay: number;
 };
 
+/** A recurring monthly charge (e.g. Spotify) reserved from the budget up front. */
+export type FixedCost = {
+  id: string;
+  name: string;
+  emoji: string;
+  /** Amount in grosze. */
+  amount: number;
+  /** Day of month it gets charged, 1–31 (clamped to the month's length). */
+  day: number;
+};
+
 export type Period = {
   start: DayKey;
   /** Exclusive. */
@@ -33,7 +44,12 @@ export type PaceStatus = 'good' | 'warning' | 'over';
 
 export type BudgetSummary = {
   period: Period;
+  /** The whole budget, including fixed costs. */
   budget: number;
+  /** Sum of fixed costs, reserved at the start of the period. */
+  fixedTotal: number;
+  /** What's left for everyday spending: budget minus fixed costs. */
+  spendable: number;
   spent: number;
   remaining: number;
   spentToday: number;
@@ -113,27 +129,38 @@ export function expensesInPeriod(expenses: Expense[], period: Period): Expense[]
 
 const sum = (expenses: Expense[]) => expenses.reduce((acc, e) => acc + e.amount, 0);
 
-export function summarize(settings: Settings, expenses: Expense[], today: DayKey): BudgetSummary {
+export function fixedTotal(fixedCosts: FixedCost[]): number {
+  return fixedCosts.reduce((acc, f) => acc + f.amount, 0);
+}
+
+export function summarize(
+  settings: Settings,
+  expenses: Expense[],
+  today: DayKey,
+  fixedCosts: FixedCost[] = [],
+): BudgetSummary {
   const period = getPeriod(today, settings.periodStartDay);
   const inPeriod = expensesInPeriod(expenses, period);
+  const fixed = fixedTotal(fixedCosts);
+  const spendable = settings.budget - fixed;
 
   const spent = sum(inPeriod);
   const spentToday = sum(inPeriod.filter((e) => e.day === today));
   const spentBeforeToday = sum(inPeriod.filter((e) => e.day < today));
-  const remaining = settings.budget - spent;
+  const remaining = spendable - spent;
 
   const daysLeft = daysBetween(today, period.end);
   const dayNumber = period.totalDays - daysLeft + 1;
 
-  const dailyLimitToday = Math.max(0, Math.floor((settings.budget - spentBeforeToday) / daysLeft));
+  const dailyLimitToday = Math.max(0, Math.floor((spendable - spentBeforeToday) / daysLeft));
   const leftToday = dailyLimitToday - spentToday;
   const limitFromTomorrow = daysLeft > 1 ? Math.max(0, Math.floor(remaining / (daysLeft - 1))) : null;
 
-  const baseDailyLimit = Math.floor(settings.budget / period.totalDays);
+  const baseDailyLimit = Math.max(0, Math.floor(spendable / period.totalDays));
   const projectedSpend = Math.round((spent / dayNumber) * period.totalDays);
 
   // Compare actual spending against an even split up to and including today.
-  const expectedByNow = (settings.budget * dayNumber) / period.totalDays;
+  const expectedByNow = (spendable * dayNumber) / period.totalDays;
   let status: PaceStatus = 'good';
   if (remaining < 0 || leftToday < 0 || spent > expectedByNow * 1.15) status = 'over';
   else if (spent > expectedByNow) status = 'warning';
@@ -141,6 +168,8 @@ export function summarize(settings: Settings, expenses: Expense[], today: DayKey
   return {
     period,
     budget: settings.budget,
+    fixedTotal: fixed,
+    spendable,
     spent,
     remaining,
     spentToday,
@@ -153,6 +182,32 @@ export function summarize(settings: Settings, expenses: Expense[], today: DayKey
     projectedSpend,
     status,
   };
+}
+
+function daysInMonth(key: DayKey): number {
+  const [y, m] = parseKey(key);
+  return new Date(Date.UTC(y, m, 0)).getUTCDate();
+}
+
+/** The day within `period` when a fixed cost charged on `day` of the month falls. */
+export function chargeDayInPeriod(period: Period, day: number): DayKey {
+  for (let d = period.start; d < period.end; d = addDays(d, 1)) {
+    if (parseKey(d)[2] === Math.min(day, daysInMonth(d))) return d;
+  }
+  // A period is always one month long, so this is unreachable; fall back to its start.
+  return period.start;
+}
+
+export type UpcomingCharge = FixedCost & { date: DayKey; charged: boolean };
+
+/** Fixed costs with their charge date in the period, sorted by date. */
+export function chargesInPeriod(fixedCosts: FixedCost[], period: Period, today: DayKey): UpcomingCharge[] {
+  return fixedCosts
+    .map((f) => {
+      const date = chargeDayInPeriod(period, f.day);
+      return { ...f, date, charged: date <= today };
+    })
+    .sort((a, b) => (a.date === b.date ? a.name.localeCompare(b.name) : a.date < b.date ? -1 : 1));
 }
 
 export type CategoryTotal = { category: string; total: number; share: number };

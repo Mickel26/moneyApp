@@ -8,6 +8,7 @@ import {
   addDays,
   amountToInput,
   clampStartDay,
+  fixedTotal,
   formatDay,
   formatMoney,
   getPeriod,
@@ -30,7 +31,8 @@ export function BudgetForm({
   askAlreadySpent?: boolean;
 }) {
   const theme = useTheme();
-  const { today } = useStore();
+  const { today, fixedCosts } = useStore();
+  const fixed = fixedTotal(fixedCosts);
   const [budgetText, setBudgetText] = useState(initial ? amountToInput(initial.budget) : '');
   const [startDay, setStartDay] = useState(initial?.periodStartDay ?? 1);
   const [spentText, setSpentText] = useState('');
@@ -72,7 +74,8 @@ export function BudgetForm({
         </Muted>
         {budget !== null && (
           <Muted style={styles.center}>
-            To średnio {formatMoney(Math.floor(budget / period.totalDays))} dziennie
+            To średnio {formatMoney(Math.max(0, Math.floor((budget - fixed) / period.totalDays)))} dziennie
+            {fixed > 0 ? ' (po stałych opłatach)' : ''}
           </Muted>
         )}
       </Card>

@@ -2,8 +2,11 @@ import { describe, expect, it } from '@jest/globals';
 
 import {
   addDays,
+  chargeDayInPeriod,
+  chargesInPeriod,
   dailyTotals,
   Expense,
+  FixedCost,
   formatMoney,
   getPeriod,
   parseAmount,
@@ -192,5 +195,42 @@ describe('formatting', () => {
     expect(relativeDayLabel('2026-10-03', '2026-10-03')).toBe('Dziś');
     expect(relativeDayLabel('2026-10-02', '2026-10-03')).toBe('Wczoraj');
     expect(relativeDayLabel('2026-09-28', '2026-10-03')).toBe('poniedziałek, 28 września');
+  });
+});
+
+describe('fixed costs', () => {
+  const settings = { budget: 3100_00, periodStartDay: 1 };
+  const spotify: FixedCost = { id: 's', name: 'Spotify', emoji: '🎵', amount: 23_99, day: 15 };
+  const phone: FixedCost = { id: 'p', name: 'Telefon', emoji: '📱', amount: 31_01, day: 31 };
+
+  it('reserves fixed costs up front and splits the rest across days', () => {
+    const s = summarize(settings, [], '2026-10-01', [spotify, phone]);
+    expect(s.fixedTotal).toBe(55_00);
+    expect(s.spendable).toBe(3045_00);
+    expect(s.remaining).toBe(3045_00);
+    expect(s.dailyLimitToday).toBe(Math.floor(3045_00 / 31));
+    expect(s.baseDailyLimit).toBe(Math.floor(3045_00 / 31));
+  });
+
+  it('does not count fixed costs as spending', () => {
+    const s = summarize(settings, [expense('2026-10-01', 10)], '2026-10-01', [spotify]);
+    expect(s.spent).toBe(10_00);
+    expect(s.remaining).toBe(3100_00 - 23_99 - 10_00);
+  });
+
+  it('finds the charge day within the period, clamped to the month length', () => {
+    const period = getPeriod('2026-10-20', 10); // 10 Oct – 9 Nov
+    expect(chargeDayInPeriod(period, 15)).toBe('2026-10-15');
+    expect(chargeDayInPeriod(period, 5)).toBe('2026-11-05');
+    expect(chargeDayInPeriod(getPeriod('2027-02-10', 1), 31)).toBe('2027-02-28');
+  });
+
+  it('lists charges by date and marks the ones already charged', () => {
+    const period = getPeriod('2026-10-20', 1);
+    const charges = chargesInPeriod([phone, spotify], period, '2026-10-20');
+    expect(charges.map((c) => [c.name, c.date, c.charged])).toEqual([
+      ['Spotify', '2026-10-15', true],
+      ['Telefon', '2026-10-31', false],
+    ]);
   });
 });

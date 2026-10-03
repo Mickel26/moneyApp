@@ -2,13 +2,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 
-import { DayKey, Expense, Settings, toDayKey } from '@/lib/budget';
+import { DayKey, Expense, FixedCost, Settings, toDayKey } from '@/lib/budget';
 
 const STORAGE_KEY = 'budzet:v1';
 
 type PersistedState = {
   settings: Settings | null;
   expenses: Expense[];
+  fixedCosts: FixedCost[];
 };
 
 type Store = PersistedState & {
@@ -18,8 +19,12 @@ type Store = PersistedState & {
   updateExpense: (id: string, changes: Partial<Omit<Expense, 'id'>>) => void;
   deleteExpense: (id: string) => void;
   saveSettings: (settings: Settings) => void;
+  saveFixedCost: (fixedCost: Omit<FixedCost, 'id'> & { id?: string }) => void;
+  deleteFixedCost: (id: string) => void;
   resetAll: () => void;
 };
+
+const EMPTY_STATE: PersistedState = { settings: null, expenses: [], fixedCosts: [] };
 
 const StoreContext = createContext<Store | null>(null);
 
@@ -43,7 +48,7 @@ function useToday(): DayKey {
 }
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<PersistedState>({ settings: null, expenses: [] });
+  const [state, setState] = useState<PersistedState>(EMPTY_STATE);
   const [loaded, setLoaded] = useState(false);
   const today = useToday();
   const skipNextSave = useRef(true);
@@ -53,7 +58,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       .then((raw) => {
         if (!raw) return;
         const parsed = JSON.parse(raw) as Partial<PersistedState>;
-        setState({ settings: parsed.settings ?? null, expenses: parsed.expenses ?? [] });
+        setState({
+          settings: parsed.settings ?? null,
+          expenses: parsed.expenses ?? [],
+          fixedCosts: parsed.fixedCosts ?? [],
+        });
       })
       .catch((error) => console.warn('Nie udało się wczytać danych', error))
       .finally(() => setLoaded(true));
@@ -93,13 +102,38 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setState((s) => ({ ...s, settings }));
   }, []);
 
+  const saveFixedCost = useCallback((fixedCost: Omit<FixedCost, 'id'> & { id?: string }) => {
+    setState((s) => {
+      const { id } = fixedCost;
+      const fixedCosts = id
+        ? s.fixedCosts.map((f) => (f.id === id ? { ...fixedCost, id } : f))
+        : [...s.fixedCosts, { ...fixedCost, id: newId() }];
+      return { ...s, fixedCosts };
+    });
+  }, []);
+
+  const deleteFixedCost = useCallback((id: string) => {
+    setState((s) => ({ ...s, fixedCosts: s.fixedCosts.filter((f) => f.id !== id) }));
+  }, []);
+
   const resetAll = useCallback(() => {
-    setState({ settings: null, expenses: [] });
+    setState(EMPTY_STATE);
   }, []);
 
   const value = useMemo<Store>(
-    () => ({ ...state, loaded, today, addExpense, updateExpense, deleteExpense, saveSettings, resetAll }),
-    [state, loaded, today, addExpense, updateExpense, deleteExpense, saveSettings, resetAll],
+    () => ({
+      ...state,
+      loaded,
+      today,
+      addExpense,
+      updateExpense,
+      deleteExpense,
+      saveSettings,
+      saveFixedCost,
+      deleteFixedCost,
+      resetAll,
+    }),
+    [state, loaded, today, addExpense, updateExpense, deleteExpense, saveSettings, saveFixedCost, deleteFixedCost, resetAll],
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

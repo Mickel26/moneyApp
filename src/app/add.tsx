@@ -14,7 +14,7 @@ import { useStore } from '@/lib/store';
 export default function AddExpenseScreen() {
   const theme = useTheme();
   const { id } = useLocalSearchParams<{ id?: string }>();
-  const { expenses, settings, today, addExpense, updateExpense, deleteExpense } = useStore();
+  const { expenses, settings, fixedCosts, today, addExpense, updateExpense, deleteExpense } = useStore();
   const editing = id ? expenses.find((e) => e.id === id) : undefined;
 
   const [amountText, setAmountText] = useState(editing ? amountToInput(editing.amount) : '');
@@ -30,7 +30,7 @@ export default function AddExpenseScreen() {
   let preview: string | null = null;
   if (settings && amount !== null) {
     const others = expenses.filter((e) => e.id !== editing?.id);
-    const after = summarize(settings, [...others, { id: 'preview', amount, category, day, createdAt: 0 }], today);
+    const after = summarize(settings, [...others, { id: 'preview', amount, category, day, createdAt: 0 }], today, fixedCosts);
     preview =
       after.leftToday >= 0
         ? `Po tym wydatku na dziś zostanie ${formatMoney(after.leftToday)}`

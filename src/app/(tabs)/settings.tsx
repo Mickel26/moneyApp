@@ -1,9 +1,11 @@
 import * as Haptics from 'expo-haptics';
-import { Alert, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { BudgetForm } from '@/components/budget-form';
+import { FixedCostsCard } from '@/components/fixed-costs-card';
 import { Button, Card, Muted, Screen, SectionLabel } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
+import { confirmAction, notify } from '@/lib/actions';
 import { pluralize } from '@/lib/budget';
 import { useStore } from '@/lib/store';
 
@@ -11,10 +13,12 @@ export default function SettingsScreen() {
   const { settings, expenses, saveSettings, resetAll } = useStore();
 
   const confirmReset = () =>
-    Alert.alert('Usunąć wszystkie dane?', 'Budżet i wszystkie wydatki zostaną trwale usunięte.', [
-      { text: 'Anuluj', style: 'cancel' },
-      { text: 'Usuń', style: 'destructive', onPress: resetAll },
-    ]);
+    confirmAction(
+      'Usunąć wszystkie dane?',
+      'Budżet, stałe opłaty i wszystkie wydatki zostaną trwale usunięte.',
+      'Usuń',
+      resetAll,
+    );
 
   return (
     <Screen title="Ustawienia">
@@ -27,9 +31,16 @@ export default function SettingsScreen() {
         onSubmit={(next) => {
           saveSettings(next);
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          Alert.alert('Zapisano ✅', 'Limity dzienne zostały przeliczone.');
+          notify('Zapisano ✅', 'Limity dzienne zostały przeliczone.');
         }}
       />
+
+      {settings && (
+        <>
+          <SectionLabel>Stałe opłaty</SectionLabel>
+          <FixedCostsCard mode="manage" />
+        </>
+      )}
 
       <SectionLabel>Dane</SectionLabel>
       <Card>
@@ -43,8 +54,9 @@ export default function SettingsScreen() {
       <SectionLabel>Jak to działa?</SectionLabel>
       <Card style={styles.help}>
         <Muted>
-          • Dzienny limit = (budżet − wydatki z poprzednich dni) ÷ dni do końca okresu.
+          • Dzienny limit = (budżet − stałe opłaty − wydatki z poprzednich dni) ÷ dni do końca okresu.
         </Muted>
+        <Muted>• Stałe opłaty (np. Spotify) są odejmowane od budżetu od razu na początku okresu.</Muted>
         <Muted>• Jeśli dziś wydasz mniej, od jutra limit trochę wzrośnie. Jeśli więcej – spadnie.</Muted>
         <Muted>• Kolor paska pokazuje tempo: zielony – OK, żółty – trochę za szybko, czerwony – za szybko.</Muted>
       </Card>

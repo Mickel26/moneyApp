@@ -18,7 +18,7 @@ import { useStore } from '@/lib/store';
 
 export default function StatsScreen() {
   const theme = useTheme();
-  const { settings, expenses, today } = useStore();
+  const { settings, expenses, fixedCosts, today } = useStore();
 
   if (!settings) {
     return (
@@ -28,7 +28,7 @@ export default function StatsScreen() {
     );
   }
 
-  const summary = summarize(settings, expenses, today);
+  const summary = summarize(settings, expenses, today, fixedCosts);
   const inPeriod = expensesInPeriod(expenses, summary.period);
   const days = dailyTotals(inPeriod, summary.period, today);
   const categories = totalsByCategory(inPeriod);
@@ -58,9 +58,15 @@ export default function StatsScreen() {
         <Tile
           label="Prognoza na koniec"
           value={formatMoney(summary.projectedSpend, { whole: true })}
-          color={summary.projectedSpend > summary.budget ? theme.over : theme.good}
+          color={summary.projectedSpend > summary.spendable ? theme.over : theme.good}
         />
       </View>
+
+      {summary.fixedTotal > 0 && (
+        <Muted style={styles.small}>
+          Bez stałych opłat ({formatMoney(summary.fixedTotal)} / mies.) – są odliczone od budżetu z góry.
+        </Muted>
+      )}
 
       <SectionLabel>Wydatki dzień po dniu</SectionLabel>
       <Card>

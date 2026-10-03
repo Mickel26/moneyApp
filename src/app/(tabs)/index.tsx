@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { BudgetForm } from '@/components/budget-form';
 import { ExpenseRow } from '@/components/expense-row';
+import { FixedCostsCard } from '@/components/fixed-costs-card';
 import { Button, Card, Muted, ProgressBar, Screen, SectionLabel } from '@/components/ui';
 import { Spacing, Theme } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -12,7 +13,7 @@ import { sortExpenses, useStore } from '@/lib/store';
 
 export default function TodayScreen() {
   const theme = useTheme();
-  const { loaded, settings, expenses, today, saveSettings, addExpense, deleteExpense } = useStore();
+  const { loaded, settings, expenses, fixedCosts, today, saveSettings, addExpense, deleteExpense } = useStore();
 
   if (!loaded) return <View style={{ flex: 1, backgroundColor: theme.background }} />;
 
@@ -39,7 +40,7 @@ export default function TodayScreen() {
     );
   }
 
-  const summary = summarize(settings, expenses, today);
+  const summary = summarize(settings, expenses, today, fixedCosts);
   const todayExpenses = sortExpenses(expenses.filter((e) => e.day === today));
   const todayColor = summary.leftToday < 0 ? theme.over : theme.good;
   const statusColor = colorForStatus(summary, theme);
@@ -74,11 +75,16 @@ export default function TodayScreen() {
         <Text style={[styles.remaining, { color: summary.remaining < 0 ? theme.over : theme.text }]}>
           {formatMoney(summary.remaining)}
           <Text style={[styles.remainingOf, { color: theme.textSecondary }]}>
-            {'  '}z {formatMoney(summary.budget, { whole: true })}
+            {'  '}z {formatMoney(summary.spendable, { whole: true })}
           </Text>
         </Text>
+        {summary.fixedTotal > 0 && (
+          <Muted style={styles.small}>
+            {formatMoney(summary.budget, { whole: true })} budżetu − {formatMoney(summary.fixedTotal)} stałych opłat
+          </Muted>
+        )}
         <ProgressBar
-          value={summary.budget > 0 ? summary.spent / summary.budget : 1}
+          value={summary.spendable > 0 ? summary.spent / summary.spendable : 1}
           color={statusColor}
           marker={summary.dayNumber / summary.period.totalDays}
         />
@@ -100,6 +106,13 @@ export default function TodayScreen() {
           <Text style={[styles.paceText, { color: theme.text }]}>{paceMessage(summary)}</Text>
         </View>
       </Card>
+
+      {fixedCosts.length > 0 && (
+        <>
+          <SectionLabel>Stałe opłaty</SectionLabel>
+          <FixedCostsCard mode="schedule" />
+        </>
+      )}
 
       <SectionLabel>Dzisiejsze wydatki</SectionLabel>
       <Card style={styles.list}>
@@ -146,7 +159,7 @@ function paceMessage(s: BudgetSummary): string {
   if (s.spent === 0) {
     return `✨ Nowy okres! Masz średnio ${formatMoney(s.baseDailyLimit, { whole: true })} na dzień.`;
   }
-  const missing = s.projectedSpend - s.budget;
+  const missing = s.projectedSpend - s.spendable;
   // A projection from just a couple of days is too noisy to sound the alarm.
   if (s.status !== 'good' && s.leftToday >= 0 && s.dayNumber <= 3) {
     return `👀 Początek okresu, a wydajesz szybciej niż plan. Spokojnie – jeszcze łatwo to nadrobić.`;
@@ -158,9 +171,9 @@ function paceMessage(s: BudgetSummary): string {
     return `🚨 Dziś przekraczasz limit. Jutro limit spadnie do ${formatMoney(s.limitFromTomorrow ?? 0, { whole: true })}.`;
   }
   if (s.status === 'warning') {
-    return `⚠️ Wydajesz trochę szybciej niż plan. W tym tempie wydasz ok. ${projected} z ${formatMoney(s.budget, { whole: true })}.`;
+    return `⚠️ Wydajesz trochę szybciej niż plan. W tym tempie wydasz ok. ${projected} z ${formatMoney(s.spendable, { whole: true })}.`;
   }
-  return `👌 Dobre tempo! W tym tempie zostanie Ci ok. ${formatMoney(Math.max(0, s.budget - s.projectedSpend), { whole: true })} na koniec okresu.`;
+  return `👌 Dobre tempo! W tym tempie zostanie Ci ok. ${formatMoney(Math.max(0, s.spendable - s.projectedSpend), { whole: true })} na koniec okresu.`;
 }
 
 const styles = StyleSheet.create({
